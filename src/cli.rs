@@ -66,7 +66,14 @@ targets as a comma-separated list."
         help = "Number of processor cores to use"
     )]
     pub num_cores: usize,
-
+    #[arg(
+        short,
+        long = "bench-only",
+        required = false,
+        default_value_t = false,
+        help = "Run only benchmarking then quit"
+    )]
+    pub benchmark_only: bool,
     #[arg(
         short = 'r',
         long = "restore",

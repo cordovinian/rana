@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
+use std::process::exit;
 
 use bip39::Mnemonic;
 use clap::Parser;
@@ -29,6 +30,7 @@ fn main() -> Result<()> {
     let mut vanity_npub_suffixes: Vec<String> = Vec::new();
     let num_cores: usize = parsed_args.num_cores;
     let qr: bool = parsed_args.qr;
+    let benchmark_only = parsed_args.benchmark_only;
 
     for vanity_npub_pre in parsed_args.vanity_npub_prefixes_raw_input.split(',') {
         if !vanity_npub_pre.is_empty() {
@@ -97,6 +99,11 @@ fn main() -> Result<()> {
         println!("Benchmarking of cores disabled for vanity npub key upon proper calculation.");
     } else {
         benchmark_cores(num_cores, pow_difficulty);
+    }
+
+    if vanity_npub_prefixes.is_empty() && benchmark_only {
+        println!("Benchmark only flag is enabled. Exiting.");
+        exit(0);
     }
 
     // Loop: generate public keys until desired public key is reached
