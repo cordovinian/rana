@@ -31,6 +31,7 @@ fn main() -> Result<()> {
     let num_cores: usize = parsed_args.num_cores;
     let qr: bool = parsed_args.qr;
     let benchmark_only = parsed_args.benchmark_only;
+    let exit_after_find = parsed_args.exit_after_find;
 
     for vanity_npub_pre in parsed_args.vanity_npub_prefixes_raw_input.split(',') {
         if !vanity_npub_pre.is_empty() {
@@ -119,6 +120,7 @@ fn main() -> Result<()> {
     let iterations = Arc::new(AtomicU64::new(0));
 
     // start a thread for each core for calculations
+    let mut thread_handles = Vec::with_capacity(1);
     for _ in 0..num_cores {
         let best_diff = best_diff.clone();
         let vanity_ts = vanity_ts.clone();
@@ -127,7 +129,7 @@ fn main() -> Result<()> {
         let passphrase = Arc::new(parsed_args.mnemonic_passphrase.clone());
         let iterations = iterations.clone();
 
-        thread::spawn(move || {
+        let current_handler = thread::spawn(move || {
             let mut keys;
             let mut mnemonic;
 
@@ -238,13 +240,44 @@ fn main() -> Result<()> {
                     if qr {
                         print_qr(keys.secret_key().unwrap()).unwrap();
                     }
+                    if exit_after_find {
+                        break;
+                    }
                 }
             }
         });
+        Vec::push(&mut thread_handles, current_handler)
     }
 
-    // put main thread to sleep
+    // put main thread to sleep until threads complete
     loop {
-        thread::sleep(Duration::from_secs(3600));
+        let mut finished = true;
+        thread::sleep(std::time::Duration::from_secs(1));
+        for ii in 0..thread_handles.len() {
+            if !thread_handles[ii].is_finished() {
+                finished = false;
+            }
+        }
+        if finished {
+            for handle in thread_handles {
+                let result = handle.join();
+                handle_reuslt(result);
+            }
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn handle_reuslt(r: thread::Result<()>) {
+    match r {
+        Ok(_r) => {},
+        Err(e) => {
+            if let Some(e) = e.downcast_ref::<&'static str>() {
+                println!("Got an error: {}", e);
+            } else {
+                println!("Got an unknown error: {:?}", e);
+            }
+        }
     }
 }

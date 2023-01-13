@@ -75,6 +75,14 @@ targets as a comma-separated list."
     )]
     pub benchmark_only: bool,
     #[arg(
+        short,
+        long = "exit-after",
+        required = false,
+        default_value_t = false,
+        help = "Exit after a key pair is found"
+    )]
+    pub exit_after_find: bool,
+    #[arg(
         short = 'r',
         long = "restore",
         help = "Restore from mnemonic to public private key",
